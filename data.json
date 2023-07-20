@@ -1,0 +1,44 @@
+{
+  "conversations": [
+    {
+      "user": "Hi",
+      "bot": "Hello! How can I assist you?"
+    },
+    {
+      "user": "Hello",
+      "bot": "Hello! How can I assist you?"
+    },
+    {
+      "user": "What courses does CSTU University offer?",
+      "bot": "CSTU University offers a wide range of courses in various disciplines such as Computer Science, Mathematics, Physics, English Composition, Biology, History, and many more. Some popular courses include 'Introduction to Computer Science', 'Calculus I', 'Physics I', 'English Composition', 'Cell Biology', 'World History', and 'Economics 101'."
+    },
+    {
+      "user": "Tell me about the Computer Science course.",
+      "bot": "The Computer Science course (CSCI101) is an introductory course covering the basics of computer science and programming. It is taught by Dr. Smith and carries 3 credits. The course is scheduled on Mondays, Wednesdays, and Fridays from 9:00 AM to 10:30 AM."
+    },
+    {
+      "user": "Who is the instructor for the Physics I course?",
+      "bot": "The Physics I course (PHYS101) is taught by Dr. Brown. It is an introductory course in classical mechanics and basic principles of physics. The course carries 3 credits and is scheduled on Mondays, Wednesdays, and Fridays from 1:00 PM to 2:30 PM."
+    },
+    {
+      "user": "When does the English Composition course take place?",
+      "bot": "The English Composition course (ENG102) is taught by Prof. Davis. It focuses on developing writing and communication skills. The course carries 3 credits and is scheduled on Mondays and Wednesdays from 3:00 PM to 4:30 PM."
+    },
+    {
+      "user": "What majors are available at CSTU University?",
+      "bot": "CSTU University offers a wide variety of majors to choose from. Some of the popular majors include Computer Science, Biology, Engineering, Economics, Psychology, Business Administration, and History. Students can explore these majors and choose the one that aligns with their interests and career goals."
+    },
+    {
+      "user": "How can I apply for admission to CSTU University?",
+      "bot": "To apply for admission to CSTU University, you can visit the university's official website and navigate to the 'Admissions' section. There, you will find detailed information about the application process, required documents, deadlines, and any specific requirements for your chosen program. Make sure to review the admission criteria carefully and submit a complete application to enhance your chances of acceptance."
+    },
+    {
+      "user": "What extracurricular activities are available for students?",
+      "bot": "CSTU University offers a vibrant campus life with numerous extracurricular activities and clubs. Students can participate in sports, cultural events, music and dance clubs, student government, volunteering programs, and various academic organizations. These activities provide opportunities for personal growth, social interaction, and skill development outside of the classroom."
+    },
+    {
+      "user": "Goodbye",
+      "bot": "Goodbye! Have a great day!"
+    }
+  ]
+}

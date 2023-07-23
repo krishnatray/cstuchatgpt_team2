@@ -2,10 +2,10 @@
 # Team 2: CSTU Chat GPT App
 # Sushil Sharma
 
-import openai
 import streamlit as st
 import random
 import time
+import openai
 
 st.title("CSTUChatgpt")
 

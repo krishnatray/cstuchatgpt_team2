@@ -5,6 +5,7 @@
 import streamlit as st
 import random
 import time
+import openai
 
 st.title("CSTUChatgpt")
 

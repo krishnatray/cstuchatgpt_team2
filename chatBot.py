@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 import openai
 import json
 
-dotenv_path = '../.env'  #modify and  change to your correct path!
-load_dotenv(dotenv_path)
+#dotenv_path = '../.env'  #modify and  change to your correct path!
+#load_dotenv(dotenv_path)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Load JSON data

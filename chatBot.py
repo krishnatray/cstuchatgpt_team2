@@ -4,36 +4,25 @@ from dotenv import load_dotenv
 import openai
 import json
 
-dotenv_path = '../.env'  #modify and  change to your correct path!
+dotenv_path = '.env'  #modify and  change to your correct path!
 load_dotenv(dotenv_path)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Load JSON data
 json_data = json.loads(open("data.json", "r").read())  # Replace "your_json_file.json" with the actual file path
+context = json_data["system guide"].copy()
 
-# Generating responses from the GPT-3 API
+# Generating responses from the GPT-3.5 API
 def generate_response(prompt):
-    for conversation in json_data["conversations"]:
-        if prompt.lower() == conversation["user"].lower():
-            # If the user's input matches any of the user questions in the JSON data,
-            # use the corresponding bot response as the initial context for GPT-3.
-            initial_context = conversation["bot"]
-            break
-    else:
-        # If no match found in JSON data, use an empty string as initial context.
-        initial_context = ""
-
-    completions = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=f"{initial_context}\nUser: {prompt}\nBot:",
-        max_tokens=150,
-        n=1,
-        stop=None,
-        temperature=0.5
-    )
-    messages = completions.choices[0].text
-    return messages
-
+  global context
+  response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",  
+    messages=context+[{"role":"user", "content":prompt}],
+    temperature=0,
+    max_tokens=150)
+  answer = response.choices[0]["message"]["content"]
+  context = context + [{"role":"assistant", "content": answer}]
+  return answer
 
 # Chatbot interface
 def main():

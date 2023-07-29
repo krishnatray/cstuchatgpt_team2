@@ -2,70 +2,75 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 import openai
-import json
+import textwrap
 
-dotenv_path = '../.env'  #modify and  change to your correct path!
+dotenv_path = '../.env'  # modify and change to your correct path!
 load_dotenv(dotenv_path)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Load JSON data
-json_data = json.loads(open("data.json", "r").read())  # Replace "your_json_file.json" with the actual file path
-
-# Generating responses from the GPT-3 API
-def generate_response(prompt):
-    for conversation in json_data["conversations"]:
-        if prompt.lower() == conversation["user"].lower():
-            # If the user's input matches any of the user questions in the JSON data,
-            # use the corresponding bot response as the initial context for GPT-3.
-            initial_context = conversation["bot"]
-            break
-    else:
-        # If no match found in JSON data, use an empty string as initial context.
-        initial_context = ""
-
-    completions = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=f"{initial_context}\nUser: {prompt}\nBot:",
-        max_tokens=150,
-        n=1,
-        stop=None,
-        temperature=0.5
+def chat_complete_messages(messages, temperature=0):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-0613",
+        messages=messages,
+        temperature=temperature, # this is the degree of randomness of the model's output
     )
-    messages = completions.choices[0].text
-    return messages
-
+    return response.choices[0]["message"]["content"]
+# Function to limit the line width of the text
+def limit_line_width(text, max_line_width):
+    lines = textwrap.wrap(text, width=max_line_width)
+    return "\n".join(lines)
 
 # Chatbot interface
 def main():
     st.title("Chatbot Interface")
     st.write("Welcome to cstuGPT")
-
-    # Initialize the chat history on the first run
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
+        # Initialize the chat history with the system message if it doesn't exist
+        st.session_state.chat_history = [
+            {'role': 'system', 'content': f"""
+            You are a smart and friendly virtual assistant designed to enhance student engagement. Please start by greeting the student
+            and offering assistance with registering for July courses with one sentence.
 
-    user_input = st.text_input("You:", key="user_input", value="", placeholder="Type your question here")
+            If a student wishes to register for a different time period, kindly apologize and explain that registration
+            is currently only open for July. If a student requires other functions besides registration, ask them to
+            check other corresponding web pages.
+
+            Begin by greeting the student and then proceed with the registration process for the July course selection.
+            Ask for email, inform them that they will receive a confirmation email upon completion.
+
+            After collecting all registrations, summarize them and check if the student wishes to enroll in any additional courses.
+
+            Please review the following course list and respond in a short, conversational, and friendly manner.
+            The course includes:
+            - UX/Product Design Instructor: Xinyu, Time Saturday morning 9:30-11:30
+            - AI and Reinforcement Learning, Instructor: YC,  Time: Monday night 19:30-21:00 and Saturday 15:10-17:10
+            - Data Visualization, Instuctor: George,  Time: Tuesday night 19:30-21:00 and Saturday 13:30 - 15:00
+            - CSTUGPT， Instructor: Michael, Time: Wednesday night 19:30-21:30
+            - Python,  Insturctor: Glen, Time: Thursday night: 19:30-21:30
+            - Security (Seminor), Insturctor: Wickey Wang Time: Friday night 19:30-21:30
+            """},
+        ]
+
+    user_input = st.text_input("User Message:", key="user_input", value="", placeholder="Type your question here")
 
     if st.button("Submit"):
-        if user_input.strip():
-            # Clean the user input by removing leading and trailing spaces
-            cleaned_input = user_input.strip()
+        if user_input.strip() != "":
+            my_message = {"role": "user", "content": user_input}
+            st.session_state.chat_history.append(my_message)
 
-            # Generate response using the GPT model with potential context from JSON data
-            gpt3_response = generate_response(cleaned_input)
+            # Get the model response
+            response = chat_complete_messages(st.session_state.chat_history, temperature=0)
+            # Limit the line width to, for example, 40 characters
+            max_line_width = 60
+            formatted_text = limit_line_width(response, max_line_width)
+            ai_message = {"role": "assistant", "content": formatted_text}
+            st.session_state.chat_history.append(ai_message)
+            # Display the chat history for Assistant and User only
+        for idx, message in enumerate(st.session_state.chat_history):
+            if message["role"] == "user" or message["role"] == "assistant":
+                st.text(f"{message['role']}: {message['content']}")
 
-            # Save the user input and chatbot response to chat history
-            st.session_state.chat_history.append(("You", cleaned_input))
-            st.session_state.chat_history.append(("Chatbot", gpt3_response))
-
-            # Empty the input field after submitting using a JavaScript workaround
-            st.markdown("<script>document.getElementById('user_input').value = '';</script>", unsafe_allow_html=True)
 
 
-
-    # Display the chat history
-    st.write("Chat History:")
-    for sender, message in st.session_state.chat_history:
-        st.text(f"{sender}: {message}")
 if __name__ == "__main__":
     main()

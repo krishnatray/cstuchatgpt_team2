@@ -12,7 +12,7 @@ import textwrap3 as textwrap
 
 st.title("Team2 CSTUChatgpt 💬")
 
-
+st.sidebar.image("robo.gif")
 
 OPENAI_API_KEY = st.sidebar.text_input("Enter openai key")
 

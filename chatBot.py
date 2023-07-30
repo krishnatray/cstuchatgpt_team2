@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 import os
 from dotenv import load_dotenv
 import openai
@@ -26,14 +27,14 @@ def generate_response(prompt):
 
 # Chatbot interface
 def main():
-    st.title("Chatbot Interface")
-    st.write("Welcome to cstuGPT")
+    st.title("Welcome to CSTU Chat GPT")
+    st.write("This is the chat box interface designed by team 2. Please enter your question into the box below and then press the Submit button")
 
     # Initialize the chat history on the first run
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    user_input = st.text_input("You:", key="user_input", value="", placeholder="Type your question here")
+    user_input = st.text_area("Your question:", key="user_input", value="", placeholder="Type your question here", height=None)
 
     if st.button("Submit"):
         if user_input.strip():
@@ -44,16 +45,14 @@ def main():
             gpt3_response = generate_response(cleaned_input)
 
             # Save the user input and chatbot response to chat history
-            st.session_state.chat_history.append(("You", cleaned_input))
-            st.session_state.chat_history.append(("Chatbot", gpt3_response))
+            st.session_state.chat_history.append(("User", cleaned_input))
+            st.session_state.chat_history.append(("Assistant", gpt3_response))
 
             # Empty the input field after submitting using a JavaScript workaround
             st.markdown("<script>document.getElementById('user_input').value = '';</script>", unsafe_allow_html=True)
 
-
-
     # Display the chat history
-    st.write("Chat History:")
+    st.write("Conversation content:")
     for sender, message in st.session_state.chat_history:
         st.text(f"{sender}: {message}")
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ st.title("Team2 CSTUChatgpt 💬")
 
 st.sidebar.image("robo.gif")
 
-OPENAI_API_KEY = st.sidebar.text_input("Enter openai key")
+OPENAI_API_KEY = st.sidebar.text_input("Enter openai key", type="password")
 
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY

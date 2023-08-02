@@ -1,0 +1,27 @@
+[
+    {
+        "course_id": "CSCI101",
+        "course_title": "Introduction to Computer Science",
+        "course_description": "Learn the basics of programming."
+    },
+    {
+        "course_id": "MATH202",
+        "course_title": "Advanced Mathematics",
+        "course_description": "Covers calculus and linear algebra."
+    },
+    {
+        "course_id": "ENG301",
+        "course_title": "English Literature",
+        "course_description": "Explore classic works of English literature."
+    },
+    {
+        "course_id": "HIST101",
+        "course_title": "World History",
+        "course_description": "Covers major historical events."
+    },
+    {
+        "course_id": "CS500",
+        "course_title": "cstuGPT",
+        "course_description": "This course will provide an introduction to implementing OpenAI models. Students will learn the fundamentals of working with OpenAI models and gain hands-on experience in implementing and training models using OpenAI's tools and frameworks. Topics covered include data preprocessing, model architecture design, training and fine-tuning, and evaluation of OpenAI models. By the end of the course, students will have the skills and knowledge to implement and deploy their own OpenAI models for various applications."
+    }
+]

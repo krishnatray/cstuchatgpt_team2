@@ -19,10 +19,11 @@ st.title("Team2 CSTUChatgpt 💬")
 
 #st.sidebar.image("robo.gif")
 
-OPENAI_API_KEY = st.sidebar.text_input("Enter openai key", type="password")
-
+OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
+
+SENDGRID_API_KEY = st.sidebar.text_input("Enter SendGrid API key", type="password")
 
 if "chat_history" not in st.session_state:
    st.session_state.chat_history = []
@@ -96,7 +97,7 @@ def send_email(receiver_email, body):
         subject='Course registration confirmation from CSTU',
         html_content=body)
     try:
-        sg = SendGridAPIClient('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')
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
         response = sg.send(message)
         #print(response.status_code)
         #print(response.body)
@@ -112,7 +113,7 @@ for message in st.session_state.chat_history:
 # Accept user input
 if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
 
-    if OPENAI_API_KEY:
+    if OPENAI_API_KEY and SENDGRID_API_KEY:
         my_message = {"role": "user", "content": user_input}
         
         # Add user message to chat history
@@ -128,7 +129,7 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         if response.get("function_call"): # Sending email 
             function_args = json.loads(response["function_call"]["arguments"])
             send_email(function_args.get("receiver_email"), function_args.get("body")) 
-            formatted_text = "Thank you for your email. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
+            formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
             #st.info("The following message has been sent to "+function_args.get("receiver_email")+":\n"+function_args.get("body"))
         else: 
             formatted_text = limit_line_width(response["content"], max_line_width)
@@ -144,5 +145,5 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
             st.write(ai_message['content'])
 
     else:
-        st.write("!!! Error empty OPENAI_API_KEY !!!")
+        st.write("!!! Error: Empty OPENAI_API_KEY or SENDGRID_API_KEY!!!")
     

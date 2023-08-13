@@ -1,29 +1,36 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 import os
 from dotenv import load_dotenv
 import openai
 import textwrap
 
-dotenv_path = '../.env'  # modify and change to your correct path!
+dotenv_path = '.env'  #modify and  change to your correct path!
 load_dotenv(dotenv_path)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def chat_complete_messages(messages, temperature=0):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
-        messages=messages,
-        temperature=temperature, # this is the degree of randomness of the model's output
-    )
-    return response.choices[0]["message"]["content"]
-# Function to limit the line width of the text
-def limit_line_width(text, max_line_width):
-    lines = textwrap.wrap(text, width=max_line_width)
-    return "\n".join(lines)
+# Load JSON data
+json_data = json.loads(open("data.json", "r").read())  # Replace "your_json_file.json" with the actual file path
+context = json_data["system guide"].copy()
+
+# Generating responses from the GPT-3.5 API
+def generate_response(prompt):
+  global context
+  response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",  
+    messages=context+[{"role":"user", "content":prompt}],
+    temperature=0,
+    max_tokens=150)
+  answer = response.choices[0]["message"]["content"]
+  context = context + [{"role":"assistant", "content": answer}]
+  return answer
 
 # Chatbot interface
 def main():
-    st.title("Chatbot Interface")
-    st.write("Welcome to cstuGPT")
+    st.title("Welcome to CSTU Chat GPT")
+    st.write("This is the chat box interface designed by team 2. Please enter your question into the box below and then press the Submit button")
+
+    # Initialize the chat history on the first run
     if "chat_history" not in st.session_state:
         # Initialize the chat history with the system message if it doesn't exist
         st.session_state.chat_history = [
@@ -51,25 +58,27 @@ def main():
             """},
         ]
 
-    user_input = st.text_input("User Message:", key="user_input", value="", placeholder="Type your question here")
+    user_input = st.text_area("Your question:", key="user_input", value="", placeholder="Type your question here", height=None)
 
     if st.button("Submit"):
         if user_input.strip() != "":
             my_message = {"role": "user", "content": user_input}
             st.session_state.chat_history.append(my_message)
 
-            # Get the model response
-            response = chat_complete_messages(st.session_state.chat_history, temperature=0)
-            # Limit the line width to, for example, 40 characters
-            max_line_width = 60
-            formatted_text = limit_line_width(response, max_line_width)
-            ai_message = {"role": "assistant", "content": formatted_text}
-            st.session_state.chat_history.append(ai_message)
-            # Display the chat history for Assistant and User only
-        for idx, message in enumerate(st.session_state.chat_history):
-            if message["role"] == "user" or message["role"] == "assistant":
-                st.text(f"{message['role']}: {message['content']}")
+            # Generate response using the GPT model with potential context from JSON data
+            gpt3_response = generate_response(cleaned_input)
 
+            # Save the user input and chatbot response to chat history
+            st.session_state.chat_history.append(("User", cleaned_input))
+            st.session_state.chat_history.append(("Assistant", gpt3_response))
+
+            # Empty the input field after submitting using a JavaScript workaround
+            st.markdown("<script>document.getElementById('user_input').value = '';</script>", unsafe_allow_html=True)
+
+    # Display the chat history
+    st.write("Conversation content:")
+    for sender, message in st.session_state.chat_history:
+        st.text(f"{sender}: {message}")
 
 
 if __name__ == "__main__":

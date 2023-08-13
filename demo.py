@@ -1,55 +1,144 @@
-import openai
 import os
+import streamlit as st
 from dotenv import load_dotenv
-dotenv_path = '../.env'  #modify and  change to your correct path!
+import openai
+import json
+from CourseManagement import CourseManagement
+
+# Initialize Streamlit app
+st.title("Chatbot with GPT-3.5 Turbo")
+st.write("Enter your message below:")
+
+courseManage = CourseManagement()
+dotenv_path = '../.env'  # modify and change to your correct path!
 load_dotenv(dotenv_path)
-
 openai.api_key = os.getenv("OPENAI_API_KEY")
-print("Great, you have got you api key work: ", openai.api_key)
 
-
-def get_answer(context, question):
-    # Format the conversation with the given context and question
-    conversation = f"User: {question}\nAssistant: {context}"
-
-    # Use the OpenAI API to generate a response
-    response = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=conversation,
-        max_tokens=150  # Adjust as needed based on your response length preference
+def chat_complete(prompt):
+    # Query against the model "gpt-3.5-turbo-0613"
+    messages = [{"role": "user", "content": prompt}]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-0613",
+        messages=messages,
+        temperature=0,  # this is the degree of randomness of the model's output
     )
+    return response.choices[0]["message"]["content"]
 
-    # Extract and return the answer from the response
-    answer = response.choices[0].text.strip()
-    return answer
+def get_current_weather(location, unit="fahrenheit"):
+    """Get the current weather in a given location"""
+    weather_info = {
+        "location": location,
+        "temperature": "72",
+        "unit": unit,
+        "forecast": ["sunny", "windy"],
+    }
+    return json.dumps(weather_info)
 
-# Sample context from the data file (replace with your actual data)
-context_from_file = """
-California Science and Technology University (CSTU) is
-an academic institution of post graduate learning that is
-located in Milpitas, and committed to provide a quality education
-to individuals whose goals include the development of rational,
-systematic, and critical thinking while striving to succeed in their
-chosen profession. CSTU was founded in 2011 and is licensed to operate
-by the BPPE of California.  Based on the following information, please tell me...
-"""
+def main():
+    user_input = st.text_area("User Input")
 
-# Sample questions
-question_1 = "Tell me about CSTU."
-question_2 = "What is the location of CSTU?"
-question_3 = "Why should I apply for CSTU?"
+    if st.button("Send"):
+        messages = [{"role": "user", "content": user_input}]
 
-# Get answers based on the context
-answer_1 = get_answer(context_from_file, question_1)
-answer_2 = get_answer(context_from_file, question_2)
-answer_3 = get_answer(context_from_file, question_3)
+        functions = [
+            {
+                "name": "get_current_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        },
+                        "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+                    },
+                    "required": ["location"],
+                },
+            },
+            {
+                "name": "get_course_information",
+                "description": "Get the course information",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "course_id": {
+                            "type": "string",
+                            "description": "The course id"
+                        },
+                        "course_title": {
+                            "type": "string",
+                            "description": "The course title"
+                        },
+                        "course_description": {
+                            "type": "string",
+                            "description": "The new course description"
+                        }
+                    },
+                    "anyOf": [
+                        {"required": ["course_id"]},
+                        {"required": ["course_title"]}
+                    ]
+                }
+            }
+        ]
 
-# Print the answers
-print("Q: " + question_1)
-print("A: " + answer_1)
+        available_functions = {
+            "get_current_weather": get_current_weather,
+            "get_course_information": courseManage.get_course_information,
+        }
 
-print("\nQ: " + question_2)
-print("A: " + answer_2)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0613",
+            messages=messages,
+            functions=functions,
+            function_call="auto",  # auto is default, but we'll be explicit
+        )
 
-print("\nQ: " + question_3)
-print("A: " + answer_3)
+        response_message = response["choices"][0]["message"]
+
+        # Step 2: check if GPT wanted to call a function
+        if response_message.get("function_call"):
+            function_name = response_message["function_call"]["name"]
+            #st.write("function_name: ", function_name)
+
+            function_to_call = available_functions.get(function_name)
+            if function_to_call:
+                function_args = json.loads(response_message["function_call"]["arguments"])
+
+                # Step 3: call the function
+                # Note: the JSON response may not always be valid; be sure to handle errors
+                function_response = function_to_call(
+                    **function_args
+                )
+                #st.write(response_message, function_response)
+
+                # Step 4: send the info on the function call and function response to GPT
+                messages.append(response_message)  # extend conversation with assistant's reply
+                messages.append(
+                    {
+                        "role": "function",
+                        "name": function_name,
+                        "content": function_response,
+                    }
+                )  # extend conversation with function response
+
+                second_response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo-0613",
+                    messages=messages,
+                )  # get a new response from GPT where it can see the function response
+                #st.write(second_response)
+            else:
+                st.write("Function not available")
+        else:
+            st.write("GPT does not want to call")
+
+        st.write(str(second_response["choices"][0]["message"]["content"]))
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+

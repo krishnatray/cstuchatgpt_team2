@@ -8,6 +8,10 @@ import random
 import time
 import openai
 import textwrap3 as textwrap
+import dotenv
+from dotenv import load_dotenv
+import os
+import pinecone
 
 # For sending email
 import json
@@ -16,44 +20,41 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 st.title("Team2 CSTUChatgpt 💬")
-
 #st.sidebar.image("robo.gif")
 
 OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
-if OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
+if OPENAI_API_KEY: openai.api_key = OPENAI_API_KEY
 
-SENDGRID_API_KEY = st.sidebar.text_input("Enter SendGrid API key", type="password")
+#dotenv_path = '.env'  # Specify the path to the .env file
+env = load_dotenv() # Copy .env file to the same directory before running
+if not env: st.error("Enviroment file error. Please check .env file in your directory.")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 
-if "chat_history" not in st.session_state:
-   st.session_state.chat_history = []
-     
+embed_model = "text-embedding-ada-002"
+index_name = 'cstugpt-kb'
+pinecone.init( # initialize connection to pinecone
+    api_key=PINECONE_API_KEY,
+    environment="us-west1-gcp-free")
+index = pinecone.Index(index_name) # connect to pinecone index
+
+if "chat_history" not in st.session_state: st.session_state.chat_history = []    
 
 # Initialize chat history
-if "prompt_history" not in st.session_state:
-        # Initialize the chat history with the system message if it doesn't exist
+delimiter = "####"
+if "prompt_history" not in st.session_state: # Initialize the chat history with the system message if it doesn't exist
         st.session_state.prompt_history = [
-            {'role': 'system', 'content': f"""
-            You are a smart and friendly virtual assistant designed to enhance student engagement. Please start by greeting the student
-            and offering assistance with registering for July and August courses with one sentence.
-
-            If a student wishes to register for a different time period, kindly apologize and explain that registration
-            is currently only open for July. If a student requires other functions besides registration, ask them to
-            check other corresponding web pages.
-
-            Begin by greeting the student and then proceed with the registration process by asking them choose courses from available course list.
-
-            After collecting all registrations, summarize them and check if the student wishes to enroll in any additional courses. 
-            After the student finish registrations, ask for his/her email address. If they provide email address, inform them that they will receive a confirmation email and send them a confirmation email about their course registrations.
-
-            Please refer to the following available course list for the July and August and display a new line after each course when listing them:\n
-            (1) UX/Product Design Instructor: Xinyu, Time Saturday morning 9:30-11:30;\n
-            (2) AI and Reinforcement Learning, Instructor: YC,  Time: Monday night 19:30-21:00 and Saturday 15:10-17:10;\n
-            (3) Data Visualization, Instuctor: George,  Time: Tuesday night 19:30-21:00 and Saturday 13:30 - 15:00;\n
-            (4) CSTUGPT，Instructor: Michael,Time: Wednesday night 19:30-21:30;\n(5) Python, Insturctor: Glen, Time: Thursday night: 19:30-21:30;\n
-            (6) Security (Seminor), Insturctor: Wickey Wang Time: Friday night 19:30-21:30\n
-            """}
-        ]
+            {'role': 'system', 'content': f"""\
+            You are a smart and friendly virtual assistant designed as a chat agent to answer concisely questions about California Science and Technology University.\
+            After greeting, ask for user's name and use it in an appropriate way. During the coversation, use the chat history information if needed and answer their questions\ 
+            based on the following knowledge base within the given context delimited by {delimiter}.\
+            If users require information about CSTU out of knowledge base, ask them to check the web site www.cstu.edu.\
+            If users ask for course registration, assist them to choose current available courses from the list. When listing the courses, you should add a line break after each course line.\
+            After collecting courses, summarize them and check if users wish to enroll in any additional course or make confirmation with selected courses.\        
+            If it's completed, ask for their email address. If they provide email address, send them a confirmation email about their course registrations\
+            """} ]
 
 def chat_complete_messages(messages, temperature=0):
     """  Utility function to call chatgpt api chat completion 
@@ -82,7 +83,6 @@ def chat_complete_messages(messages, temperature=0):
     )
     return response.choices[0]["message"]
 
-
 def limit_line_width(text, max_line_width):
     """ Function to limit the line width of the text """
     if text is None: return ""
@@ -104,6 +104,7 @@ def send_email(receiver_email, body):
         #print(response.headers)
     except Exception as e:
             print(e.message)
+            st.info("A registration confirmation message has been sent to your email.")
     
 # Display chat messages from history on app rerun
 for message in st.session_state.chat_history:
@@ -112,18 +113,40 @@ for message in st.session_state.chat_history:
 
 # Accept user input
 if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
-
-    if OPENAI_API_KEY and SENDGRID_API_KEY:
-        my_message = {"role": "user", "content": user_input}
-        
+    if OPENAI_API_KEY:
+        res = openai.Embedding.create(
+            input=[user_input],
+            engine=embed_model
+            )
+        kb_res = index.query(res['data'][0]['embedding'], top_k=5, include_metadata=True, namespace='cstu')
+        #If the include_metadata parameter is set to True, the query method will only return the id, score, and metadata for each document. The vector for each document will not be returned
+        metadata_text_list = [x['metadata']['text'] for x in kb_res['matches']]
+        limit = 3600  #set the limit of knowledge base words
+        kb_content = " "
+        count = 0
+        proceed = True
+        while proceed and count < len(metadata_text_list):  # append until hitting limit
+            if len(kb_content) + len(metadata_text_list[count]) >= limit:
+                proceed = False
+            else:
+                    kb_content += metadata_text_list[count]
+            count += 1
+        knowledge_message = {"role": "system", "content": f"""
+                             {delimiter}{kb_content}{delimiter}
+                             """}
+       
         # Add user message to chat history
-        st.session_state.chat_history.append(my_message)
-        st.session_state.prompt_history.append(my_message)
+        user_message = {"role": "user", "content": user_input}
+        st.session_state.chat_history.append(user_message)
+        
+        # Add knowledge base and user message to promt history      
+        st.session_state.prompt_history.append(knowledge_message)        
+        st.session_state.prompt_history.append(user_message)
 
         # Get the model response
         response = chat_complete_messages(st.session_state.prompt_history, temperature=0)
         #response = chat_complete_messages(C, temperature=0)
-        # Limit the line width to, for example, 40 characters
+        # Limit the line width to, for example, 60 characters
         max_line_width = 60
         
         if response.get("function_call"): # Sending email 
@@ -140,10 +163,10 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
 
         # Display message in chat message container
         with st.chat_message("user"):
-            st.write(my_message['content'])
+            st.write(user_message['content'])
         with st.chat_message("assistant"):
             st.write(ai_message['content'])
 
     else:
-        st.write("!!! Error: Empty OPENAI_API_KEY or SENDGRID_API_KEY!!!")
+        st.write("!!! Error: You need to enter OPENAI_API_KEY!")
     

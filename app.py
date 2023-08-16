@@ -110,7 +110,7 @@ def send_email_save(receiver_email, body,courses,name):
         writer.writerow(data)
 
     message = Mail(
-        from_email='fwangboulder@gmail.com',
+        from_email='cstu02@gmail.com',
         to_emails=receiver_email,
         subject='Course registration confirmation from CSTU',
         html_content=body)

@@ -2,7 +2,7 @@
 # Team 2: CSTU Chat GPT App
 # Sushil Sharma, Fang Wang, Lam Dao
 # 07/29 Added Fang's chnages, Aded sidebar for OPENAI key input
-#  
+#
 import streamlit as st
 import random
 import time
@@ -12,6 +12,8 @@ import dotenv
 from dotenv import load_dotenv
 import os
 import pinecone
+import os
+import csv
 
 # For sending email
 import json
@@ -40,7 +42,8 @@ pinecone.init( # initialize connection to pinecone
     environment="us-west1-gcp-free")
 index = pinecone.Index(index_name) # connect to pinecone index
 
-if "chat_history" not in st.session_state: st.session_state.chat_history = []    
+if "chat_history" not in st.session_state: 
+    st.session_state.chat_history = []    
 
 # Initialize chat history
 delimiter = "####"
@@ -57,9 +60,9 @@ if "prompt_history" not in st.session_state: # Initialize the chat history with 
             """} ]
 
 def chat_complete_messages(messages, temperature=0):
-    """  Utility function to call chatgpt api chat completion 
-         function with temparature = 0 as default 
-         and returns the api response 
+    """  Utility function to call chatgpt api chat completion
+         function with temparature = 0 as default
+         and returns the api response
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-0613",
@@ -67,17 +70,19 @@ def chat_complete_messages(messages, temperature=0):
         temperature=temperature, # this is the degree of randomness of the model's output
         functions = [
          {
-            "name": "send_email",
-            "description": "Send a confirmation email for user's course registration",
+            "name": "send_email_save",
+            "description": "Send a confirmation email for user's course registration and save user's registration information",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "receiver_email": {"type": "string", "description": "The email of user",},
                     "body": {"type": "string", "description": "Confirmation content of CSTU about courses registered by student users",},
+                    "courses":{"type":"string", "description":"The courses the user want to register",},
+                    "name": {"type":"string","description":"The name of the user",},
                 },
-                "required": ["receiver_email"],
+                "required": ["receiver_email", "courses","name","body"],
             }
-         }
+         },
         ],
        function_call="auto",
     )
@@ -90,7 +95,21 @@ def limit_line_width(text, max_line_width):
     return "\n".join(lines)
 
 # Define a function sending confirmation email for registration
-def send_email(receiver_email, body):
+def send_email_save(receiver_email, body,courses,name):
+# def send_email(receiver_email, body):
+
+    csv_file = "registration_records.csv"
+    print(receiver_email,body,name, courses)
+    data = [time.strftime("%Y-%m-%d %H:%M:%S"), name, receiver_email, courses]
+    if not os.path.exists(csv_file):
+        with open(csv_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Timestamp","student name", "Email", "Courses"])
+
+    with open(csv_file, "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(data)
+
     message = Mail(
         from_email='cstu02@gmail.com',
         to_emails=receiver_email,
@@ -110,7 +129,6 @@ def send_email(receiver_email, body):
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
 # Accept user input
 if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
     if OPENAI_API_KEY:
@@ -148,15 +166,17 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         #response = chat_complete_messages(C, temperature=0)
         # Limit the line width to, for example, 60 characters
         max_line_width = 60
-        
-        if response.get("function_call"): # Sending email 
+        #x = response
+
+        if response.get("function_call"): # Sending email
+
             function_args = json.loads(response["function_call"]["arguments"])
-            send_email(function_args.get("receiver_email"), function_args.get("body")) 
+            send_email_save(function_args.get("receiver_email"), function_args.get("body"), function_args.get("courses"),function_args.get("name"))
             formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
             #st.info("The following message has been sent to "+function_args.get("receiver_email")+":\n"+function_args.get("body"))
-        else: 
+        else:
             formatted_text = limit_line_width(response["content"], max_line_width)
-        
+
         ai_message = {"role": "assistant", "content": formatted_text}
         st.session_state.chat_history.append(ai_message)
         st.session_state.prompt_history.append(ai_message)

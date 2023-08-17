@@ -2,12 +2,14 @@
 # Team 2: CSTU Chat GPT App
 # Sushil Sharma, Fang Wang, Lam Dao
 # 07/29 Added Fang's chnages, Aded sidebar for OPENAI key input
-#  
+#
 import streamlit as st
 import random
 import time
 import openai
 import textwrap3 as textwrap
+import os
+import csv
 
 # For sending email
 import json
@@ -27,7 +29,7 @@ SENDGRID_API_KEY = st.sidebar.text_input("Enter SendGrid API key", type="passwor
 
 if "chat_history" not in st.session_state:
    st.session_state.chat_history = []
-     
+
 
 # Initialize chat history
 if "prompt_history" not in st.session_state:
@@ -43,9 +45,9 @@ if "prompt_history" not in st.session_state:
 
             Begin by greeting the student and then proceed with the registration process by asking them choose courses from available course list.
 
-            After collecting all registrations, summarize them and check if the student wishes to enroll in any additional courses. 
-            After the student finish registrations, ask for his/her email address. If they provide email address, inform them that they will receive a confirmation email and send them a confirmation email about their course registrations.
-
+            After collecting all registrations, summarize them and check if the student wishes to enroll in any additional courses.
+            After the student finish registrations, ask for his/her name and email address. If they provide email address and name, inform them that they will receive a confirmation email and send them a confirmation email about their course registrations.
+            Also inform the student that the registration information will be saved.
             Please refer to the following available course list for the July and August and display a new line after each course when listing them:\n
             (1) UX/Product Design Instructor: Xinyu, Time Saturday morning 9:30-11:30;\n
             (2) AI and Reinforcement Learning, Instructor: YC,  Time: Monday night 19:30-21:00 and Saturday 15:10-17:10;\n
@@ -56,9 +58,9 @@ if "prompt_history" not in st.session_state:
         ]
 
 def chat_complete_messages(messages, temperature=0):
-    """  Utility function to call chatgpt api chat completion 
-         function with temparature = 0 as default 
-         and returns the api response 
+    """  Utility function to call chatgpt api chat completion
+         function with temparature = 0 as default
+         and returns the api response
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-0613",
@@ -66,17 +68,19 @@ def chat_complete_messages(messages, temperature=0):
         temperature=temperature, # this is the degree of randomness of the model's output
         functions = [
          {
-            "name": "send_email",
-            "description": "Send a confirmation email for user's course registration",
+            "name": "send_email_save",
+            "description": "Send a confirmation email for user's course registration and save user's registration information",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "receiver_email": {"type": "string", "description": "The email of user",},
                     "body": {"type": "string", "description": "Confirmation content of CSTU about courses registered by student users",},
+                    "courses":{"type":"string", "description":"The courses the user want to register",},
+                    "name": {"type":"string","description":"The name of the user",},
                 },
-                "required": ["receiver_email"],
+                "required": ["receiver_email", "courses","name","body"],
             }
-         }
+         },
         ],
        function_call="auto",
     )
@@ -90,7 +94,21 @@ def limit_line_width(text, max_line_width):
     return "\n".join(lines)
 
 # Define a function sending confirmation email for registration
-def send_email(receiver_email, body):
+def send_email_save(receiver_email, body,courses,name):
+# def send_email(receiver_email, body):
+
+    csv_file = "registration_records.csv"
+    print(receiver_email,body,name, courses)
+    data = [time.strftime("%Y-%m-%d %H:%M:%S"), name, receiver_email, courses]
+    if not os.path.exists(csv_file):
+        with open(csv_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Timestamp","student name", "Email", "Courses"])
+
+    with open(csv_file, "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(data)
+
     message = Mail(
         from_email='cstu02@gmail.com',
         to_emails=receiver_email,
@@ -104,18 +122,17 @@ def send_email(receiver_email, body):
         #print(response.headers)
     except Exception as e:
             print(e.message)
-    
+
 # Display chat messages from history on app rerun
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
 # Accept user input
 if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
 
     if OPENAI_API_KEY and SENDGRID_API_KEY:
         my_message = {"role": "user", "content": user_input}
-        
+
         # Add user message to chat history
         st.session_state.chat_history.append(my_message)
         st.session_state.prompt_history.append(my_message)
@@ -125,15 +142,17 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         #response = chat_complete_messages(C, temperature=0)
         # Limit the line width to, for example, 40 characters
         max_line_width = 60
-        
-        if response.get("function_call"): # Sending email 
+        #x = response
+
+        if response.get("function_call"): # Sending email
+
             function_args = json.loads(response["function_call"]["arguments"])
-            send_email(function_args.get("receiver_email"), function_args.get("body")) 
+            send_email_save(function_args.get("receiver_email"), function_args.get("body"), function_args.get("courses"),function_args.get("name"))
             formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
             #st.info("The following message has been sent to "+function_args.get("receiver_email")+":\n"+function_args.get("body"))
-        else: 
+        else:
             formatted_text = limit_line_width(response["content"], max_line_width)
-        
+
         ai_message = {"role": "assistant", "content": formatted_text}
         st.session_state.chat_history.append(ai_message)
         st.session_state.prompt_history.append(ai_message)
@@ -141,9 +160,10 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         # Display message in chat message container
         with st.chat_message("user"):
             st.write(my_message['content'])
+            #st.write(x)
         with st.chat_message("assistant"):
             st.write(ai_message['content'])
 
     else:
         st.write("!!! Error: Empty OPENAI_API_KEY or SENDGRID_API_KEY!!!")
-    
+

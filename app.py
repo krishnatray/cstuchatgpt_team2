@@ -24,8 +24,8 @@ from sendgrid.helpers.mail import Mail
 st.title("Team2 CSTUChatgpt 💬")
 #st.sidebar.image("robo.gif")
 
-OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
-if OPENAI_API_KEY: openai.api_key = OPENAI_API_KEY
+# OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
+# if OPENAI_API_KEY: openai.api_key = OPENAI_API_KEY
 
 #dotenv_path = '.env'  # Specify the path to the .env file
 env = load_dotenv() # Copy .env file to the same directory before running
@@ -165,7 +165,8 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
             formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
             #st.info("The following message has been sent to "+function_args.get("receiver_email")+":\n"+function_args.get("body"))
         else:
-            formatted_text = limit_line_width(response["content"], max_line_width)
+            # formatted_text = limit_line_width(response["content"], max_line_width)
+            formatted_text = response["content"]
 
         ai_message = {"role": "assistant", "content": formatted_text}
         st.session_state.chat_history.append(ai_message)

@@ -24,14 +24,17 @@ from sendgrid.helpers.mail import Mail
 st.title("Team2 CSTUChatgpt 💬")
 #st.sidebar.image("robo.gif")
 
-# OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
-# if OPENAI_API_KEY: openai.api_key = OPENAI_API_KEY
+OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
 
 #dotenv_path = '.env'  # Specify the path to the .env file
 env = load_dotenv() # Copy .env file to the same directory before running
 if not env: st.error("Enviroment file error. Please check .env file in your directory.")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if not OPENAI_API_KEY: 
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 openai.api_key = OPENAI_API_KEY
+
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 

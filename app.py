@@ -46,41 +46,35 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []    
 
 # Initialize chat history
-delimiter = "####"
+delimiter = ""
 if "prompt_history" not in st.session_state: # Initialize the chat history with the system message if it doesn't exist
         st.session_state.prompt_history = [
             {'role': 'system', 'content': f"""\
-            You are a smart and friendly virtual assistant designed as a chat agent to answer concisely questions about California Science and Technology University.\
-            After greeting, ask for user's name and use it in an appropriate way. During the coversation, use the chat history information if needed and answer their questions\ 
-            based on the following knowledge base within the given context delimited by {delimiter}.\
-            If users require information about CSTU out of knowledge base, ask them to check the web site www.cstu.edu.\
-            If users ask for course registration, assist them to choose current available courses from the list. When listing the courses, you should add a line break after each course line.\
-            After collecting courses, summarize them and check if users wish to enroll in any additional course or make confirmation with selected courses.\        
-            If it's completed, ask for their email address. If they provide email address, send them a confirmation email about their course registrations\
+You are a chat agent providing concise answers to questions about California Science and Technology University (CSTU) based on contents provided at system role.\
+At begining, welcome users to CSTU. If users require information related to CSTU out of provided context, ask them to check the website www.cstu.edu.\
+If users ask for course registration, ask for user's name. Then provide them a list of available courses for registration.\
+If they select courses, you summarize them and check if they wish to enroll in any additional course or confirm with selected courses.\        
+If it's all, ask for their email address. If they provide email address, complete the registration.\
             """} ]
-
+# During the coversation, refer to chat history and the information delimited by {delimiter}.
 def chat_complete_messages(messages, temperature=0):
-    """  Utility function to call chatgpt api chat completion
-         function with temparature = 0 as default
-         and returns the api response
-    """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo-0613",
         messages=messages,
         temperature=temperature, # this is the degree of randomness of the model's output
         functions = [
          {
-            "name": "send_email_save",
-            "description": "Send a confirmation email for user's course registration and save user's registration information",
+            "name": "registration",
+            "description": "complete the registration",
             "parameters": {
                 "type": "object",
                 "properties": {
+                    "student_name": {"type":"string","description":"The name of the user",},
                     "receiver_email": {"type": "string", "description": "The email of user",},
-                    "body": {"type": "string", "description": "Confirmation content of CSTU about courses registered by student users",},
                     "courses":{"type":"string", "description":"The courses the user want to register",},
-                    "name": {"type":"string","description":"The name of the user",},
+                    "body": {"type": "string", "description": "Confirmation content of CSTU about courses registered by user",},
                 },
-                "required": ["receiver_email", "courses","name","body"],
+                "required": ["student_name", "receiver_email", "courses","body"],
             }
          },
         ],
@@ -95,27 +89,23 @@ def limit_line_width(text, max_line_width):
     return "\n".join(lines)
 
 # Define a function sending confirmation email for registration
-def send_email_save(receiver_email, body,courses,name):
-# def send_email(receiver_email, body):
-
-    csv_file = "registration_records.csv"
-    print(receiver_email,body,name, courses)
-    data = [time.strftime("%Y-%m-%d %H:%M:%S"), name, receiver_email, courses]
-    if not os.path.exists(csv_file):
-        with open(csv_file, "w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(["Timestamp","student name", "Email", "Courses"])
-
-    with open(csv_file, "a", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(data)
-
-    message = Mail(
-        from_email='cstu02@gmail.com',
-        to_emails=receiver_email,
-        subject='Course registration confirmation from CSTU',
-        html_content=body)
+def registration(student_name,receiver_email,courses,body):
     try:
+        csv_file = "registration_records.csv"
+        #print(receiver_email,body,name, courses)
+        data = [time.strftime("%Y-%m-%d %H:%M:%S"), student_name, receiver_email, courses]
+        if not os.path.exists(csv_file):
+            with open(csv_file, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["REGISTRATION TIME","STUDENT NAME", "EMAIL ADDRESS", "COURSE NAME"])
+        with open(csv_file, "a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(data)
+        message = Mail(
+            from_email='cstu02@gmail.com',
+            to_emails=receiver_email,
+            subject='Course registration confirmation from CSTU',
+            html_content=body)
         sg = SendGridAPIClient(SENDGRID_API_KEY)
         response = sg.send(message)
         #print(response.status_code)
@@ -136,7 +126,7 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
             input=[user_input],
             engine=embed_model
             )
-        kb_res = index.query(res['data'][0]['embedding'], top_k=5, include_metadata=True, namespace='cstu')
+        kb_res = index.query(res['data'][0]['embedding'], top_k=1, include_metadata=True, namespace='cstu')
         #If the include_metadata parameter is set to True, the query method will only return the id, score, and metadata for each document. The vector for each document will not be returned
         metadata_text_list = [x['metadata']['text'] for x in kb_res['matches']]
         limit = 3600  #set the limit of knowledge base words
@@ -171,7 +161,7 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         if response.get("function_call"): # Sending email
 
             function_args = json.loads(response["function_call"]["arguments"])
-            send_email_save(function_args.get("receiver_email"), function_args.get("body"), function_args.get("courses"),function_args.get("name"))
+            registration(function_args.get("student_name"), function_args.get("receiver_email"), function_args.get("courses"), function_args.get("body"))
             formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
             #st.info("The following message has been sent to "+function_args.get("receiver_email")+":\n"+function_args.get("body"))
         else:

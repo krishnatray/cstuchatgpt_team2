@@ -4,6 +4,7 @@
 # 07/29 Added Fang's chnages, Aded sidebar for OPENAI key input
 #
 import streamlit as st
+import pandas as pd
 import random
 import time
 import openai
@@ -29,10 +30,9 @@ st.title("Team2 CSTUChatgpt 💬")
 env = load_dotenv() # Copy .env file to the same directory before running
 if not env: st.error("Enviroment file error. Please check .env file in your directory.")
 
-# if not OPENAI_API_KEY: 
-#     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
+# OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
 openai.api_key = OPENAI_API_KEY
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -58,7 +58,9 @@ At begining, welcome users to CSTU. If users require information related to CSTU
 If users ask for course registration, ask for user's name. Then provide them a list of available courses for registration.\
 If they select courses, you summarize them and check if they wish to enroll in any additional course or confirm with selected courses.\        
 If it's all, ask for their email address. If they provide email address, complete the registration.\
-            """} ]
+If user ask to reconfirm the registration, ask for user's email address. If they provide email address, call function 
+        get_registration with email address and display the results.
+                         """} ]
 # During the coversation, refer to chat history and the information delimited by {delimiter}.
 def chat_complete_messages(messages, temperature=0):
     response = openai.ChatCompletion.create(
@@ -73,17 +75,31 @@ def chat_complete_messages(messages, temperature=0):
                 "type": "object",
                 "properties": {
                     "student_name": {"type":"string","description":"The name of the user",},
-                    "receiver_email": {"type": "string", "description": "The email of user",},
+                    "student_email": {"type": "string", "description": "The email of user",},
                     "courses":{"type":"string", "description":"The courses the user want to register",},
                     "body": {"type": "string", "description": "Confirmation content of CSTU about courses registered by user",},
                 },
-                "required": ["student_name", "receiver_email", "courses","body"],
+                "required": ["student_name", "student_email", "courses","body"],
             }
          },
+        {
+            "name": "get_registration",
+            "description": "To reconfirm registration, get the student's registration details",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "student_email": {"type": "string", "description": "The email of the student user",}
+                },
+                "required": ["student_email"],
+            }
+         },
+
+
         ],
        function_call="auto",
     )
     return response.choices[0]["message"]
+
 
 def limit_line_width(text, max_line_width):
     """ Function to limit the line width of the text """
@@ -91,12 +107,22 @@ def limit_line_width(text, max_line_width):
     lines = textwrap.wrap(text, width=max_line_width)
     return "\n".join(lines)
 
+def get_registration(student_email):
+    try:
+        df = pd.read_csv("registration_records.csv")
+        result = df[df["EMAIL ADDRESS"] == student_email].to_dict()
+        del df
+    except Exception as e:
+        result = ""
+
+    return result
+
 # Define a function sending confirmation email for registration
-def registration(student_name,receiver_email,courses,body):
+def registration(student_name,student_email,courses,body):
     try:
         csv_file = "registration_records.csv"
-        #print(receiver_email,body,name, courses)
-        data = [time.strftime("%Y-%m-%d %H:%M:%S"), student_name, receiver_email, courses]
+        #print(student_email,body,name, courses)
+        data = [time.strftime("%Y-%m-%d %H:%M:%S"), student_name, student_email, courses]
         if not os.path.exists(csv_file):
             with open(csv_file, "w", newline="") as file:
                 writer = csv.writer(file)
@@ -106,7 +132,7 @@ def registration(student_name,receiver_email,courses,body):
             writer.writerow(data)
         message = Mail(
             from_email='cstu02@gmail.com',
-            to_emails=receiver_email,
+            to_emails=student_email,
             subject='Course registration confirmation from CSTU',
             html_content=body)
         sg = SendGridAPIClient(SENDGRID_API_KEY)
@@ -161,12 +187,26 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         max_line_width = 60
         #x = response
 
-        if response.get("function_call"): # Sending email
+        if response.get("function_call"): # e.g. Sending email
+
+            function_name = response["function_call"]["name"]
+            # print("function_name: ",function_name)
+            
+            # function_to_call = available_functions[function_name]
+            # print("function_to_call: ", function_to_call)
 
             function_args = json.loads(response["function_call"]["arguments"])
-            registration(function_args.get("student_name"), function_args.get("receiver_email"), function_args.get("courses"), function_args.get("body"))
-            formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
-            #st.info("The following message has been sent to "+function_args.get("receiver_email")+":\n"+function_args.get("body"))
+            if function_name == 'registration':
+                registration(function_args.get("student_name"), function_args.get("student_email"), function_args.get("courses"), function_args.get("body"))
+                formatted_text = "Thank you for providing your email address. A confirmation message for your registration has been sent to your email. Please check it and let me known if there is any further requirement."
+                #st.info("The following message has been sent to "+function_args.get("student_email")+":\n"+function_args.get("body"))
+            elif function_name == 'get_registration':
+                # print(function_args.get("student_email"))
+                reg_info = get_registration(function_args.get("student_email")) 
+                formatted_text = f"{reg_info}"
+            else:
+                print("function_name: ",function_name)
+        
         else:
             # formatted_text = limit_line_width(response["content"], max_line_width)
             formatted_text = response["content"]

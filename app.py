@@ -28,15 +28,24 @@ st.title("Team2 CSTUChatgpt 💬")
 
 #dotenv_path = '.env'  # Specify the path to the .env file
 env = load_dotenv() # Copy .env file to the same directory before running
-if not env: st.error("Enviroment file error. Please check .env file in your directory.")
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if env: 
+    # st.error("Enviroment file error. Please check .env file in your directory.")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    openai.api_key = OPENAI_API_KEY
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+else:
+    # OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
+    try:
+        OPENAI_API_KEY = st.secrets("OPENAI_API_KEY")
+        openai.api_key = OPENAI_API_KEY
+        PINECONE_API_KEY = st.secrets("PINECONE_API_KEY")
+        SENDGRID_API_KEY = st.secrets("SENDGRID_API_KEY")
+    except Exception as e:
+        st.error("Enviroment file error!")
+        st.error(e)
 
-# OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
-openai.api_key = OPENAI_API_KEY
-
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 
 embed_model = "text-embedding-ada-002"
 index_name = 'cstugpt-kb'
@@ -58,9 +67,12 @@ At begining, welcome users to CSTU. If users require information related to CSTU
 If users ask for course registration, ask for user's name. Then provide them a list of available courses for registration.\
 If they select courses, you summarize them and check if they wish to enroll in any additional course or confirm with selected courses.\        
 If it's all, ask for their email address. If they provide email address, complete the registration.\
-If user ask to reconfirm the registration, ask for user's email address. If they provide email address, call function 
+If user ask to reconfirm or see the course registration record(s), ask for user's email address. If they provide email address, call function 
         get_registration with email address and display the results.
-                         """} ]
+If user ask to enquire or see his her course grades, ask for user's email address. If they provide email address, call function 
+        get_grades with email address and display the results.
+
+                                      """} ]
 # During the coversation, refer to chat history and the information delimited by {delimiter}.
 def chat_complete_messages(messages, temperature=0):
     response = openai.ChatCompletion.create(
@@ -93,6 +105,17 @@ def chat_complete_messages(messages, temperature=0):
                 "required": ["student_email"],
             }
          },
+        {
+            "name": "get_grades",
+            "description": "To get the student's grades",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "student_email": {"type": "string", "description": "The email of the student user",}
+                },
+                "required": ["student_email"],
+            }
+         },
 
 
         ],
@@ -113,7 +136,17 @@ def get_registration(student_email):
         result = df[df["EMAIL ADDRESS"] == student_email].to_dict()
         del df
     except Exception as e:
-        result = ""
+        result = f"Registration records not found for {student_email}!"
+
+    return result
+
+def get_grades(student_email):
+    try:
+        df = pd.read_csv("grades.csv")
+        result = df[df["student_email"] == student_email].to_dict()
+        del df
+    except Exception as e:
+        result = f"Grades records not found for {student_email}"
 
     return result
 
@@ -202,10 +235,14 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
                 #st.info("The following message has been sent to "+function_args.get("student_email")+":\n"+function_args.get("body"))
             elif function_name == 'get_registration':
                 # print(function_args.get("student_email"))
-                reg_info = get_registration(function_args.get("student_email")) 
-                formatted_text = f"{reg_info}"
+                result = get_registration(function_args.get("student_email")) 
+                formatted_text = f"{result}"
+            elif function_name == 'get_grades':
+                result = get_grades(function_args.get("student_email")) 
+                formatted_text = f"{result}"
             else:
                 print("function_name: ",function_name)
+                
         
         else:
             # formatted_text = limit_line_width(response["content"], max_line_width)
@@ -219,7 +256,10 @@ if user_input := st.chat_input("Welcome to Team2 CSTUChatgpt! 🤖"):
         with st.chat_message("user"):
             st.write(user_message['content'])
         with st.chat_message("assistant"):
-            st.write(ai_message['content'])
+            try:
+                st.write(pd.DataFrame(result))
+            except Exception as e: 
+                st.write(ai_message['content'])
 
     else:
         st.write("!!! Error: You need to enter OPENAI_API_KEY!")

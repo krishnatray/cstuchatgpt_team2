@@ -36,10 +36,10 @@ if env:
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 else:
-    # OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
+    OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
+    openai.api_key = OPENAI_API_KEY
     try:
-        OPENAI_API_KEY = st.secrets.OPENAI_API_KEY
-        openai.api_key = OPENAI_API_KEY
+        # OPENAI_API_KEY = st.secrets.OPENAI_API_KEY
         PINECONE_API_KEY = st.secrets.PINECONE_API_KEY
         SENDGRID_API_KEY = st.secrets.SENDGRID_API_KEY
     except Exception as e:

@@ -38,10 +38,10 @@ if env:
 else:
     # OPENAI_API_KEY = st.sidebar.text_input("Enter OpenAI key", type="password")
     try:
-        OPENAI_API_KEY = st.secrets("OPENAI_API_KEY")
+        OPENAI_API_KEY = st.secrets.OPENAI_API_KEY
         openai.api_key = OPENAI_API_KEY
-        PINECONE_API_KEY = st.secrets("PINECONE_API_KEY")
-        SENDGRID_API_KEY = st.secrets("SENDGRID_API_KEY")
+        PINECONE_API_KEY = st.secrets.PINECONE_API_KEY
+        SENDGRID_API_KEY = st.secrets.SENDGRID_API_KEY
     except Exception as e:
         st.error("Enviroment file error!")
         st.error(e)

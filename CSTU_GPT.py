@@ -23,10 +23,10 @@ credits_text = """
 ## Project Team:
 - Sushil K Sharma [Linkedin](https://linkedin.com/in/krishnatray)
 - Fang Wang [Linkedin](https://www.linkedin.com/in/fangwang12/) 
-- Lam Ngoc Dao [Linkedin](http://www.linkedin.com)
+- Lam Ngoc Dao [Linkedin](https://www.linkedin.com/in/lam-dao-871508246/)
 - Alok Gupta [Linkedin](https://linkedin.com/in/alok-gupta-innovator) 
 - Joyce Cheng [Linkedin](https://www.linkedin.com/in/joyce-cheng-2872a688/) 
-- Phil Pyo [Linkedin](http://www.linkedin.com)
+- Phil Pyo [Linkedin](https://www.linkedin.com/in/phillippyo/)
 ---------------------
 ## Professor:
 #### Michael Hu(mhu95131@gmail.com)

@@ -89,6 +89,8 @@ Can I see all registered students for UX course
 
 can I see all registered students
 
+show me summary report
+
 #----------------------------------------------------------------
 # 
 #  DEMO END 

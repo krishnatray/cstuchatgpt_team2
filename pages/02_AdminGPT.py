@@ -15,6 +15,8 @@ import os
 import pinecone
 import os
 import csv
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # For sending email
 import json
@@ -66,7 +68,7 @@ You are a chat agent providing concise answers to questions to California Scienc
 At begining, welcome Admin users to CSTU. 
 If admin user wants to see the registered students for a course, ask for the course name and call function get_registration with course name and display the results.
 If admin user wants to the registered students for all courses, call function get_registration_all without any parameters and display the results.
-
+If the adming wants to see the registration summary report call function summary_report without any parameters and display the results.
                                                    """} ]
 # During the coversation, refer to chat history and the information delimited by {delimiter}.
 def chat_complete_messages(messages, temperature=0):
@@ -89,6 +91,13 @@ def chat_complete_messages(messages, temperature=0):
          {
             "name": "get_registration_all",
             "description": "To reconfirm registration, get the student's registration details",
+             "parameters": {"type": "object",
+                "properties": {}
+             }
+         },
+         {
+            "name": "summary_report",
+            "description": "Disply Registration Summary Report",
              "parameters": {"type": "object",
                 "properties": {}
              }
@@ -140,6 +149,15 @@ def get_registration_all():
 
     return result
 
+def summary_report():
+    try:
+        df = pd.read_csv("registration_records.csv")
+        result = df[['COURSE NAME', 'EMAIL ADDRESS']].groupby(by=['COURSE NAME']).count().reset_index().to_dict()
+        del df
+    except Exception as e:
+        result = e
+
+    return result
 
 
 # Display chat messages from history on app rerun
@@ -199,6 +217,9 @@ if user_input := st.chat_input("Welcome to CSTU AdminChatGPT! 🤖"):
                 formatted_text = f"{result}"
             elif function_name == 'get_registration_all':
                 result = get_registration_all() 
+                formatted_text = f"{result}"
+            elif function_name == 'summary_report':
+                result = summary_report() 
                 formatted_text = f"{result}"
         
             # elif function_name == 'get_grades':

@@ -12,6 +12,11 @@ what are the academic programs offered at CSTU?
 What is the requirements of MBA program?
 
 ========== 2: Current Students ==========
+#-----------------------------------------------------------
+# Register for courses(s)
+#-----------------------------------------------------------
+
+
 Hello
 what are the courses offered in September
 I want to register for the Financial Management Course

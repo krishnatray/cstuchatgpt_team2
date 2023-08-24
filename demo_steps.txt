@@ -83,7 +83,11 @@ student2@cstugpt.com
 # Functionality to see registered users
 #-----------------------------------------------------------
 # Goto AdminChatGPT
-Can I see the registerd students
+Can I see all registered students for SQL course
+
+Can I see all registered students for UX course
+
+can I see all registered students
 
 #----------------------------------------------------------------
 # 

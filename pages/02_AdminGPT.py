@@ -63,9 +63,11 @@ if "prompt_history" not in st.session_state: # Initialize the chat history with 
         st.session_state.prompt_history = [
             {'role': 'system', 'content': f"""\
 You are a chat agent providing concise answers to questions to California Science and Technology University (CSTU) admins based on contents provided at system role.\
-At begining, welcome users to CSTU. 
-If admin user ask to show the registered students for a course, ask for the course name and call function get_registration and display the results.
-                                      """} ]
+At begining, welcome Admin users to CSTU. 
+If admin user wants to see the registered students for a course, ask for the course name and call function get_registration with course name and display the results.
+If admin user wants to the registered students for all courses, call function get_registration_all without any parameters and display the results.
+
+                                                   """} ]
 # During the coversation, refer to chat history and the information delimited by {delimiter}.
 def chat_complete_messages(messages, temperature=0):
     response = openai.ChatCompletion.create(
@@ -84,6 +86,14 @@ def chat_complete_messages(messages, temperature=0):
                 "required": ["course_name"],
             }
          },
+         {
+            "name": "get_registration_all",
+            "description": "To reconfirm registration, get the student's registration details",
+             "parameters": {"type": "object",
+                "properties": {}
+             }
+         },
+        
         # {
         #     "name": "get_grades",
         #     "description": "To get the student's grades",
@@ -112,6 +122,16 @@ def limit_line_width(text, max_line_width):
 def get_registration(course_name):
     try:
         df = pd.read_csv("registration_records.csv")
+        result = df[df['COURSE NAME']==course_name].to_dict()
+        del df
+    except Exception as e:
+        result = e
+
+    return result
+
+def get_registration_all():
+    try:
+        df = pd.read_csv("registration_records.csv")
         result = df.to_dict()
         # result = df[df["EMAIL ADDRESS"] == student_email].to_dict()
         del df
@@ -119,6 +139,7 @@ def get_registration(course_name):
         result = e
 
     return result
+
 
 
 # Display chat messages from history on app rerun
@@ -174,9 +195,12 @@ if user_input := st.chat_input("Welcome to CSTU AdminChatGPT! 🤖"):
 
             function_args = json.loads(response["function_call"]["arguments"])
             if function_name == 'get_registration':
-                # print(function_args.get("student_email"))
-                result = get_registration(function_args.get("student_email")) 
+                result = get_registration(function_args.get("course_name")) 
                 formatted_text = f"{result}"
+            elif function_name == 'get_registration_all':
+                result = get_registration_all() 
+                formatted_text = f"{result}"
+        
             # elif function_name == 'get_grades':
             #     result = get_grades(function_args.get("student_email")) 
             #     formatted_text = f"{result}"

@@ -1,0 +1,92 @@
+#----------------------------------------------------------------
+# 
+#  DEMO : Part 2
+# 
+#----------------------------------------------------------------
+
+=========== 1: Prospects =============
+Hello
+I want to know more about CSTU
+In which year CSTU was founded?
+what are the academic programs offered at CSTU?
+What is the requirements of MBA program?
+
+========== 2: Current Students ==========
+Hello
+what are the courses offered in September
+I want to register for the Financial Management Course
+Yes, I also want to register for the SQL Course
+
+#-----------------------------------------------------------
+# Provide Email
+#-----------------------------------------------------------
+
+sushilsharma71@gmail.com
+
+#-----------------------------------------------------------
+# Check: Confirmation Email regarding course get_registration
+#-----------------------------------------------------------
+
+
+#-----------------------------------------------------------
+# Reconfirm Registration
+#-----------------------------------------------------------
+I would like to reconfirm my registration
+
+#-----------------------------------------------------------
+# Student1 wants to Check his/her Grades
+#-----------------------------------------------------------
+
+Can I check my grades?
+
+# Enter Email
+student1@cstugpt.com
+
+#-----------------------------------------------------------
+# Student1 wants to download his/her transcript
+#-----------------------------------------------------------
+Hello
+I want to download my transcript
+
+# Enter Email
+student1@cstugpt.com
+
+#----------------------------------------------------------------
+# 
+#  DEMO : Part 2
+# 
+#----------------------------------------------------------------
+
+========== 3: Admins / Professors ==========
+
+
+#-----------------------------------------------------------
+# Functionality to upload grades
+#-----------------------------------------------------------
+# Goto AdminChatGPT
+# Upload the grades for Algo
+# Goto StudentGPT
+
+Can I see my grades?
+student1@cstugpt.com
+
+#-----------------------------------------------------------
+# Algo grades should be visible :) Wooohooo!!!
+#-----------------------------------------------------------
+
+
+I want to download my transcript
+student2@cstugpt.com
+
+
+#-----------------------------------------------------------
+# Functionality to see registered users
+#-----------------------------------------------------------
+# Goto AdminChatGPT
+Can I see the registerd students
+
+#----------------------------------------------------------------
+# 
+#  DEMO END 
+# 
+#----------------------------------------------------------------

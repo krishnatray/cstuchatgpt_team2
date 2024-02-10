@@ -198,16 +198,16 @@ for message in st.session_state.chat_history:
 # Accept user input
 if user_input := st.chat_input("Welcome to CSTU Chatbot of GenAI Team 2! 🤖"):
     if OPENAI_API_KEY:
-        res=generate_embedding(embedding_model, user_input)
+        input_emb=generate_embedding(embedding_model, user_input)
         # Replace NaN values with 0
-        #cleaned_vector = np.nan_to_num(res.tolist(), nan=0)
-        #cleaned_vector[np.isnan(res)] = 0
+        #cleaned_vector = np.nan_to_num(input_emb.tolist(), nan=0)
+        #cleaned_vector[np.isnan(input_emb)] = 0
         # Ensure the dimension of the vector matches the index dimension
-        if len(res) != 1536:
+        if len(input_emb) != 1536:
         # Handle the dimension mismatch: Resize the vector to match the index dimension
-            res = np.resize(cleaned_vector, (1536,))
-        kb_res = index.query(vector=res.tolist(), top_k=1, include_metadata=True, namespace='cstu')
-        #try: kb_res = index.query(vector=res.tolist(), top_k=1, include_metadata=True, namespace='cstu')
+            input_emb = np.resize(cleaned_vector, (1536,))
+        kb_res = index.query(vector=input_emb.tolist(), top_k=1, include_metadata=True, namespace='cstu')
+        #try: kb_res = index.query(vector=input_emb.tolist(), top_k=1, include_metadata=True, namespace='cstu')
         #except PineconeApiException as e:
         #    print(e) # inspect error
         #If the include_metadata parameter is set to True, the query method will only return the id, score, and metadata for each document. The vector for each document will not be returned

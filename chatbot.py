@@ -67,8 +67,6 @@ pc = Pinecone( # initialize connection to pinecone
     environment="us-west1-gcp-free")
 index = pc.Index(index_name) # connect to pinecone index
 
-#print(pc.list_indexes())
-
 if "chat_history" not in st.session_state: 
     st.session_state.chat_history = []    
 
@@ -77,17 +75,13 @@ delimiter = ""
 if "prompt_history" not in st.session_state: # Initialize the chat history with the system message if it doesn't exist
         st.session_state.prompt_history = [
             {'role': 'system', 'content': f"""\
-You are a chat agent providing concise answers to questions about California Science and Technology University (CSTU) based on contents provided at system role.\
-At begining, welcome users to CSTU. If users require information related to CSTU out of provided context, ask them to check the website www.cstu.edu.\
-If users ask for course registration, ask for user's name. Then provide them a list of available courses for registration.\
-If they select courses, you summarize them and check if they wish to enroll in any additional course or confirm with selected courses.\        
-If it's all, ask for their email address. If they provide email address, complete the registration.\
+You will answer questions about California Science and Technology University (CSTU) based on contents provided at system role.\
+At fisrt, welcome users to CSTU. If users require information related to CSTU out of provided context, ask them to check the website www.cstu.edu.\
+If users register for courses, ask them to select courses from a course list. After they finish their selection, you summarize them and ask for their name and email. If they provide name and email, complete registration.\
 If user ask to reconfirm or see the course registration record(s), ask for user's email address. If they provide email address, call function 
         get_registration with email address and display the results.
 If user ask to enquire or see his her course grades, ask for user's email address. If they provide email address, call function 
-        get_grades with email address and display the results.
-
-                                      """} ]
+        get_grades with email address and display the results."""} ]
 # During the coversation, refer to chat history and the information delimited by {delimiter}.
 def chat_complete_messages(messages, temperature=0):
     response = openai.ChatCompletion.create(
@@ -97,7 +91,7 @@ def chat_complete_messages(messages, temperature=0):
         functions = [
          {
             "name": "registration",
-            "description": "complete the registration",
+            "description": "complete registration",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -131,8 +125,6 @@ def chat_complete_messages(messages, temperature=0):
                 "required": ["student_email"],
             }
          },
-
-
         ],
        function_call="auto",
     )
@@ -151,7 +143,6 @@ def get_registration(student_email):
         del df
     except Exception as e:
         result = f"Registration records not found for {student_email}!"
-
     return result
 
 def get_grades(student_email):
@@ -239,16 +230,12 @@ if user_input := st.chat_input("Welcome to CSTU Chatbot of GenAI Team 2! 🤖"):
         #response = chat_complete_messages(C, temperature=0)
         # Limit the line width to, for example, 60 characters
         max_line_width = 60
-        #x = response
 
         if response.get("function_call"): # e.g. Sending email
-
             function_name = response["function_call"]["name"]
             # print("function_name: ",function_name)
-            
             # function_to_call = available_functions[function_name]
             # print("function_to_call: ", function_to_call)
-
             function_args = json.loads(response["function_call"]["arguments"])
             if function_name == 'registration':
                 registration(function_args.get("student_name"), function_args.get("student_email"), function_args.get("courses"), function_args.get("body"))
@@ -261,14 +248,9 @@ if user_input := st.chat_input("Welcome to CSTU Chatbot of GenAI Team 2! 🤖"):
             elif function_name == 'get_grades':
                 result = get_grades(function_args.get("student_email")) 
                 formatted_text = f"{result}"
-            else:
-                print("function_name: ",function_name)
-                
-        
-        else:
-            # formatted_text = limit_line_width(response["content"], max_line_width)
-            formatted_text = response["content"]
-
+            else: print("function_name: ",function_name)                       
+        else: formatted_text = response["content"]
+            # formatted_text = limit_line_width(response["content"], max_line_width)            
         ai_message = {"role": "assistant", "content": formatted_text}
         st.session_state.chat_history.append(ai_message)
         st.session_state.prompt_history.append(ai_message)
@@ -281,7 +263,6 @@ if user_input := st.chat_input("Welcome to CSTU Chatbot of GenAI Team 2! 🤖"):
                 st.write(pd.DataFrame(result))
             except Exception as e: 
                 st.write(ai_message['content'])
-
     else:
         st.write("!!! Error: You need to enter OPENAI_API_KEY!")
     
